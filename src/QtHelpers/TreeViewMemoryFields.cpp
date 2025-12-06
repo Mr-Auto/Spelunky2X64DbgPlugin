@@ -18,6 +18,7 @@
 #include "Views/ViewEntityDB.h"
 #include "Views/ViewParticleDB.h"
 #include "Views/ViewSettings.h" // for Settings
+#include "Views/ViewStruct.h"   // for ViewArray, ViewMatrix
 #include "Views/ViewTextureDB.h"
 #include "Views/ViewToolbar.h"
 #include "make_unsigned_integer.h"
@@ -373,7 +374,7 @@ QStandardItem* S2Plugin::TreeViewMemoryFields::addMemoryField(const MemoryField&
                 returnField->setData(field.numberOfElements, gsRoleSize);
             }
 
-            if (field.numberOfElements <= 30 || field.secondParameterType == "#" || field.secondParameterType == "$") // TODO: get the number from settings when done
+            if (field.numberOfElements <= settings->getData(Settings::ARRAY_INLINE_LIMIT).toUInt() || field.secondParameterType == "#" || field.secondParameterType == "$")
             {
                 MemoryField index = config->nameToMemoryField(field.firstParameterType);
                 index.name = field.name + '[';
@@ -381,11 +382,14 @@ QStandardItem* S2Plugin::TreeViewMemoryFields::addMemoryField(const MemoryField&
 
                 if (field.isPointer)
                     delta = 0;
+
                 size_t idx = 0;
                 if (field.secondParameterType == "#")
                 {
                     delta += field.getNumColumns() * index.get_size();
-                    memoryAddress += field.getNumColumns() * index.get_size();
+                    if (memoryAddress != 0)
+                        memoryAddress += field.getNumColumns() * index.get_size();
+
                     idx = field.getNumColumns();
                 }
 
@@ -413,27 +417,28 @@ QStandardItem* S2Plugin::TreeViewMemoryFields::addMemoryField(const MemoryField&
                 returnField->setData(field.rows, gsRoleSize);
                 returnField->setData(field.getNumColumns(), gsRoleColumns);
             }
-
-            if (field.rows <= 30 || !field.secondParameterType.empty()) // TODO: get the number from settings when done
-                                                                        // columns limit dealt by the array
+            if (field.rows <= settings->getData(Settings::ARRAY_INLINE_LIMIT).toUInt() || !field.secondParameterType.empty())
             {
                 MemoryField row;
                 row.numberOfElements = field.getNumColumns();
                 row.firstParameterType = field.firstParameterType;
                 row.secondParameterType = "$"; // just to let it know it should put all the elements in, no matrix element
-                                               // it can't be # since we still want the array to be placed normally, just no size limit
+                                               // it can't be # since we still want the array to be placed as element, just no size limit
                 row.type = MemoryFieldType::Array;
                 row.name = field.name + '[';
                 auto initialNameSize = row.name.size();
 
                 if (field.isPointer)
                     delta = 0;
+
                 size_t idx = 0;
                 if (!field.secondParameterType.empty())
                 {
                     auto rowStart = std::stoull(field.secondParameterType);
                     delta += rowStart * row.get_size();
-                    memoryAddress += rowStart * row.get_size();
+                    if (memoryAddress != 0)
+                        memoryAddress += rowStart * row.get_size();
+
                     idx = rowStart;
                 }
 
@@ -2808,7 +2813,12 @@ void S2Plugin::TreeViewMemoryFields::cellClicked(const QModelIndex& index)
                         auto rows = mainField.data(gsRoleSize).toULongLong();
                         auto columns = mainField.data(gsRoleColumns).toULongLong();
 
-                        getToolbar()->showMatrix(addr, std::move(mainField.data(Qt::DisplayRole).toString().toStdString()), std::move(typeName), rows, columns);
+                        size_t delta = 0;
+                        if (!Settings::get()->checkB(Settings::ARRAY_RELATIVE_DELTA))
+                            delta = index.sibling(index.row(), gsColMemoryAddressDelta).data(gsRoleRawValue).toULongLong();
+
+                        auto w = new ViewMatrix(addr, delta, std::move(typeName), rows, columns, std::move(mainField.data(Qt::DisplayRole).toString().toStdString()));
+                        openSubWindow(w);
                         break;
                     }
                     [[fallthrough]]; // can't just fall into DefaultStructType, but it shouldn't matter as array will do the same check and fall further anyway
@@ -2823,8 +2833,14 @@ void S2Plugin::TreeViewMemoryFields::cellClicked(const QModelIndex& index)
                             return;
 
                         auto typeName = qvariant_cast<std::string>(mainField.data(gsRoleStdContainerFirstParameterType));
-                        auto lenght = mainField.data(gsRoleSize).toULongLong();
-                        getToolbar()->showArray(addr, std::move(mainField.data(Qt::DisplayRole).toString().toStdString()), std::move(typeName), lenght);
+                        auto length = mainField.data(gsRoleSize).toULongLong();
+
+                        size_t delta = 0;
+                        if (!Settings::get()->checkB(Settings::ARRAY_RELATIVE_DELTA))
+                            delta = index.sibling(index.row(), gsColMemoryAddressDelta).data(gsRoleRawValue).toULongLong();
+
+                        auto w = new ViewArray(addr, delta, std::move(typeName), length, std::move(mainField.data(Qt::DisplayRole).toString().toStdString()));
+                        openSubWindow(w);
                         break;
                     }
                     [[fallthrough]];

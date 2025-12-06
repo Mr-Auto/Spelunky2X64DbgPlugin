@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLabel>
+#include <QSpinBox>
 #include <QString>
 #include <QVBoxLayout>
 
@@ -44,6 +45,9 @@ S2Plugin::Settings::Settings()
 
     for (auto& [data, name] : cache)
     {
+        if (!jsonData.contains(name))
+            continue;
+
         QJsonValue value = jsonData.value(name);
         data = value.toVariant();
     }
@@ -81,20 +85,35 @@ S2Plugin::ViewSettings::ViewSettings(QWidget* parent) : QWidget(parent)
     mainLayout->addSpacing(30);
 
     auto settings = Settings::get();
+    auto addOptionBool = [this, settings, mainLayout](QString name, QString toolTip, const Settings::SETTING option)
     {
-        auto check = new QCheckBox("Dev mode", this);
-        check->setToolTip("Fills flag fields and virtual functions view to max with \"unknown\" and shows skipped memory. Need to reload opened views to take effect");
-        QObject::connect(check, &QCheckBox::clicked, this, [settings](bool b) { settings->setB(Settings::DEVELOPER_MODE, b); });
-        check->setChecked(settings->checkB(Settings::DEVELOPER_MODE));
+        auto check = new QCheckBox(name, this);
+        check->setToolTip(toolTip);
+        QObject::connect(check, &QCheckBox::clicked, this, [settings, option](bool b) { settings->setB(option, b); });
+        check->setChecked(settings->checkB(option));
         mainLayout->addWidget(check);
-    }
+    };
+    auto addOptionInt = [this, settings, mainLayout](QString name, QString toolTip, const Settings::SETTING option)
     {
-        auto check = new QCheckBox("Comments as tooltip", this);
-        check->setToolTip("Hides the comments column and instead shows them as tooltip when hovering over the name");
-        QObject::connect(check, &QCheckBox::clicked, this, [settings](bool b) { settings->setB(Settings::COMMENTS_AS_TOOLTIP, b); });
-        check->setChecked(settings->checkB(Settings::COMMENTS_AS_TOOLTIP));
-        mainLayout->addWidget(check);
-    }
+        auto spinLayout = new QHBoxLayout();
+        auto spin = new QSpinBox(this);
+        spin->setToolTip(toolTip);
+        spin->setFixedWidth(50);
+        spin->setRange(0, 9999);
+        QObject::connect(spin, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, [settings, option](int val) { settings->setData(option, val); });
+        spin->setValue(settings->getData(option).toInt());
+        spinLayout->addWidget(spin);
+        auto label = new QLabel(name, this);
+        label->setToolTip(toolTip);
+        spinLayout->addWidget(label);
+        mainLayout->addLayout(spinLayout);
+    };
+
+    addOptionBool("Dev mode", "Fills flag fields and virtual functions view to max with \"unknown\" and shows skipped memory. Need to reload opened views to take effect", Settings::DEVELOPER_MODE);
+    addOptionBool("Comments as tooltip", "Hides the comments column and instead shows them as tooltip when hovering over the name", Settings::COMMENTS_AS_TOOLTIP);
+    addOptionBool("Array/Matrix show relative delta", "Show the delta for the elements relative to the array/matrix address, instead of current scope. Only when opening in new window",
+                  Settings::ARRAY_RELATIVE_DELTA);
+    addOptionInt("Array/Matrix inline limit", "Max amount of record that will be inlined in TreeMemoryView as oppose to opening in new window", Settings::ARRAY_INLINE_LIMIT);
 
     mainLayout->addStretch();
 }

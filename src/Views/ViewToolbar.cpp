@@ -188,18 +188,6 @@ void S2Plugin::ViewToolbar::showEntity(uintptr_t address)
     openSubWindow(w);
 }
 
-void S2Plugin::ViewToolbar::showArray(uintptr_t address, std::string name, std::string arrayTypeName, size_t length)
-{
-    auto w = new ViewArray(address, std::move(arrayTypeName), length, std::move(name));
-    openSubWindow(w);
-}
-
-void S2Plugin::ViewToolbar::showMatrix(uintptr_t address, std::string name, std::string arrayTypeName, size_t rows, size_t columns)
-{
-    auto w = new ViewMatrix(address, std::move(arrayTypeName), rows, columns, std::move(name));
-    openSubWindow(w);
-}
-
 void S2Plugin::ViewToolbar::showEntityList(uintptr_t address)
 {
     auto w = new ViewEntityList(address);

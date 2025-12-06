@@ -28,8 +28,6 @@ namespace S2Plugin
         void showJournalPage(uintptr_t address);
         void showLevelGen(uintptr_t address);
         void showLiquidPhysics(uintptr_t address);
-        void showArray(uintptr_t address, std::string name, std::string arrayTypeName, size_t length);
-        void showMatrix(uintptr_t address, std::string name, std::string arrayTypeName, size_t rows, size_t columns);
         void showEntityList(uintptr_t address);
         void showStdList(uintptr_t address, std::string typeName, bool oldType = false);
         void showSaveGame(uintptr_t address);

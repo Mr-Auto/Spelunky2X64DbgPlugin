@@ -33,19 +33,20 @@ namespace S2Plugin
     {
         Q_OBJECT
       public:
-        ViewArray(uintptr_t address, std::string arrayTypeName, size_t num, std::string name, QWidget* parent = nullptr);
+        ViewArray(uintptr_t address, size_t delta, std::string arrayTypeName, size_t num, std::string name, QWidget* parent = nullptr);
       protected slots:
         void pageListUpdate(std::pair<size_t, size_t> range);
 
       private:
         MemoryField mArray;
         uintptr_t mArrayAddress;
+        size_t mDelta;
     };
     class ViewMatrix : public ViewStruct
     {
         Q_OBJECT
       public:
-        ViewMatrix(uintptr_t address, std::string arrayTypeName, size_t row, size_t col, std::string name, QWidget* parent = nullptr);
+        ViewMatrix(uintptr_t address, size_t delta, std::string arrayTypeName, size_t row, size_t col, std::string name, QWidget* parent = nullptr);
 
       protected slots:
         void pageListUpdate(std::pair<size_t, size_t> range);
@@ -55,6 +56,7 @@ namespace S2Plugin
       private:
         MemoryField mMatrix;
         uintptr_t mMatrixAddress;
+        size_t mDelta;
         QTabWidget* mTabs;
         QTableWidget* mTableWidget;
     };

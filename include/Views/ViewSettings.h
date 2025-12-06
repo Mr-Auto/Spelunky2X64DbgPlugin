@@ -15,6 +15,8 @@ namespace S2Plugin
         {
             DEVELOPER_MODE,
             COMMENTS_AS_TOOLTIP,
+            ARRAY_RELATIVE_DELTA,
+            ARRAY_INLINE_LIMIT,
         };
 
         bool checkB(SETTING s) const
@@ -44,11 +46,13 @@ namespace S2Plugin
         };
 
         static Settings* _ptr;
-        QHash<SETTING, Storage> cache = {
+        QHash<SETTING, Storage> cache = {{
             // enum, {default value, name},
             {DEVELOPER_MODE, {false, "dev"}},
             {COMMENTS_AS_TOOLTIP, {false, "tooltip_comments"}},
-        };
+            {ARRAY_RELATIVE_DELTA, {false, "array_delta"}},
+            {ARRAY_INLINE_LIMIT, {30u, "array_inline"}},
+        }};
         friend class ViewSettings;
     };
 

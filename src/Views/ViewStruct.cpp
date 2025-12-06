@@ -80,10 +80,9 @@ void S2Plugin::ViewStruct::setStorage(uintptr_t addr, size_t s)
     mMainTreeView->setStorage(addr, s);
 }
 
-S2Plugin::ViewArray::ViewArray(uintptr_t address, std::string arrayTypeName, size_t num, std::string name, QWidget* parent)
-    : ViewStruct(0, {}, arrayTypeName + " " + name + '[' + std::to_string(num) + ']', parent), mArrayAddress(address)
+S2Plugin::ViewArray::ViewArray(uintptr_t address, size_t delta, std::string arrayTypeName, size_t num, std::string name, QWidget* parent)
+    : ViewStruct(0, {}, arrayTypeName + " " + name + '[' + std::to_string(num) + ']', parent), mArrayAddress(address), mDelta(delta)
 {
-
     mArray.name = name;
     mArray.type = MemoryFieldType::Array;
     mArray.firstParameterType = arrayTypeName;
@@ -106,11 +105,11 @@ void S2Plugin::ViewArray::pageListUpdate(std::pair<size_t, size_t> range)
     // using columns to store the initial index
     mArray.setNumColumns(range.first);
     mArray.numberOfElements = range.second;
-    mMainTreeView->addMemoryField(mArray, {}, mArrayAddress, 0);
+    mMainTreeView->addMemoryField(mArray, {}, mArrayAddress, mDelta);
 }
 
-S2Plugin::ViewMatrix::ViewMatrix(uintptr_t address, std::string arrayTypeName, size_t rows, size_t columns, std::string name, QWidget* parent)
-    : ViewStruct(0, {}, arrayTypeName + " " + name + '[' + std::to_string(rows) + "][" + std::to_string(columns) + ']', parent), mMatrixAddress(address)
+S2Plugin::ViewMatrix::ViewMatrix(uintptr_t address, size_t delta, std::string arrayTypeName, size_t rows, size_t columns, std::string name, QWidget* parent)
+    : ViewStruct(0, {}, arrayTypeName + " " + name + '[' + std::to_string(rows) + "][" + std::to_string(columns) + ']', parent), mMatrixAddress(address), mDelta(delta)
 {
     mMatrix.name = name;
     mMatrix.type = MemoryFieldType::Matrix;
@@ -157,15 +156,16 @@ void S2Plugin::ViewMatrix::pageListUpdate(std::pair<size_t, size_t> range)
     for (int idx = 0; idx < rowCount; ++idx)
         mTableWidget->setVerticalHeaderItem(idx, new QTableWidgetItem(QString("%1").arg(idx + static_cast<int>(range.first))));
 
-    mMainTreeView->addMemoryField(mMatrix, {}, mMatrixAddress, 0);
+    mMainTreeView->addMemoryField(mMatrix, {}, mMatrixAddress, mDelta);
 }
 
 void S2Plugin::ViewMatrix::updateData()
 {
     if (mTabs->currentIndex() == 1)
     {
-        mMainTreeView->updateTree(mMatrixAddress);
-        // update table
+        mMainTreeView->updateTree(mMatrixAddress - mDelta); // TODO: dirty way to update all the data, even for non-expanded fields
+                                                            // find a better way that doesn't overwrites all address fields for no reason
+        //  update table
         auto treeModel = mMainTreeView->model();
         bool isCellStruct = [treeModel]()
         {
